@@ -1,0 +1,341 @@
+---
+title: "FML clustering assignment"
+output: html_document
+date: "2023-11-14"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Summary;
+
+
+
+
+### Data Exploration
+1. **Data Load and Summary**: Loaded the 'Pharmaceuticals.csv' dataset, observed its structure (21 observations, 14 variables), and identified factor variables representing Symbol, Name, Median_Recommendation, Location, and Exchange.
+
+2. **Initial Visualization**: Displayed the structure of the dataset and visualized pairs of numerical variables to observe any potential clusters visually.
+
+### Cluster Analysis Preparation
+3. **Data Preprocessing**: Removed factor variables and performed scaling to normalize the data for cluster analysis.
+
+4. **Distance Matrix Calculation**: Computed the distance matrix to measure the dissimilarity between observations.
+
+### Hierarchical Agglomerative Clustering
+5. **Complete Linkage Method**: Utilized hierarchical agglomerative clustering with complete linkage to create dendrograms and identified potential clusters based on visual inspection of the dendrogram.
+
+6. **Average Linkage Method**: Conducted hierarchical agglomerative clustering with average linkage to explore alternative clustering structures.
+
+### Cluster Membership and Characterization
+7. **Cluster Membership Analysis**: Determined the number of clusters and their membership using both methods, then characterized the clusters by aggregating numerical features and observing silhouette plots for cluster validation.
+
+8. **K-means Clustering**: Performed K-means clustering with k=3 and evaluated cluster qualities using sum of squares and silhouette plots, comparing the results to hierarchical clustering.
+
+### Pattern Analysis and Interpretation
+9. **Comparison Across Methods**: Analyzed the patterns within clusters concerning Median_Recommendation, Location, and Exchange across different clustering methodologies.
+
+### Insights for Equities Analyst
+10. **Utilization for Equities Analysis**: Explored the implications of the clustering analysis for equities analysts studying the pharmaceutical industry, covering investment strategies, risk assessment, industry insights, investment allocation, strategy adaptation, and risk mitigation.
+
+### Summary and Cluster Insights
+11. **Cluster Insights and Naming**:
+   - Identified three key clusters based on recurring characteristics observed across multiple methodologies.
+   - Provided insights into stability, global consistency, and investment diversity within these clusters.
+
+12. **Cluster Naming and Rationale**:
+   - Named clusters based on dominant characteristics observed across methodologies, emphasizing stability, global presence, and investment diversity.
+
+
+
+```{r}
+# Data Exploration
+df <- read.csv('Pharmaceuticals.csv')
+getwd()
+summary(df)
+```
+
+
+The dataset shows  21 observations and it includes 14 variables.  The  variable number 1,2,12,13 & 14 are factor variables representing Symbol, Name, Median_Recommendation, Location & Exchange. In order to start cluster analysis, we are going to remove the factor variables from our analysis, because cluster analysis is only ment for nonfactor variables or numerical variables.
+
+```{r}
+head(df)
+pairs(df[3:11])
+```
+
+
+```{r}
+# Scatter plot 
+plot(df$Rev_Growth~ df$Net_Profit_Margin, df=df)
+with(df,text(df$Rev_Growth ~ df$Net_Profit_Margin, labels=df
+             
+             $Symbol,pos=2, cex= 0.8))
+```
+
+From the depicted graph, focusing on the variables Rev Growth and Net Profit Margin, it's evident that four companies, represented by symbols in the right bottom corner, share characteristics suggesting the potential to form a cluster. These companies exhibit high net profit margins and low revenue growth. Conversely, in the right top corner, three companies, indicated by symbols, demonstrate both high net profit margins and robust revenue growth, hinting at the possibility of forming another distinct cluster. For the remaining companies, there is some overlap.Lets do cluster analysis .
+
+```{r}
+#Scaling
+z = df[, -c(1,2,12,13,14)]
+df_scale = scale(z)
+df_scale
+```
+
+In order to do the cluster analysis, we need to normalize our dataset to be able to compare them to each other. After that  we are going to calculate the distance matrix based on all the variables to see which companies have the lowest distance to each other which will enable them to form the same cluster and which companies have the highest distance which will put them in different clusters.
+
+```{r}
+# Calculate distance matrix  
+distance = dist(df_scale)
+print(distance, digits = 3)
+```
+
+Now that we are ready to perform cluster analysis, we are going to use Hierarchical agglomerative clustering method with Complete Linkage as the first method.
+
+```{r}
+# Hierarchical agglomerative clustering 
+#Cluster Dendogram with Complete Linkage
+
+
+hc.c <- hclust(distance)
+plot(hc.c)
+plot(hc.c,labels=df$Company,main='Cluster Dendrogram')
+plot(hc.c,hang=-1, labels = df$Median_Recommendation, main='Cluster Dendrogram based on Median Recommendation')
+plot(hc.c,hang=-1, labels = df$Location, main='Cluster Dendrogram based on Location')
+plot(hc.c,hang=-1, labels = df$Exchange, main='Cluster Dendrogram based on Stock Exchange')
+
+#In this graph we can say that companies 2 and 18  have formed as 1 cluster at first, then 2,18,6 have made a bigger cluster and as we go up, more companies will be formed in one cluster and as we can see at the height of 7, we can divide the whole data in 2 big clusters. Based on this graph, we can suggest maybe choosing 3 clusters at the height 6 would be good for this dataset.
+```
+As the second method, we are going to use Hierarchical agglomerative clustering method with Average Linkage. As we can see in the graph, companies number 4 & 19 are again formed firstly to one cluster and then with company 7 they are making a bigger cluster and at the height 5, we have the minimum number of clusters which is 3.
+
+
+```{r}
+# Hierarchical agglomerative clustering using "average" linkage 
+#Cluster Dendogram with Average Linkage
+hc_a<-hclust(distance,method="average")
+plot(hc_a,hang=-1)
+```
+
+Now lets make a cluster membership table to compare these two methods. If we set the number of clusters with each of the methods to 3, then we would get the following table:
+
+```{r}
+# Cluster membership
+member = cutree(hc.c,3)
+table(member)
+member.c <- cutree(hc.c,3)
+member.a <- cutree(hc_a,3)
+table(member.c, member.a)
+```
+
+As we can see from the table, with the complete linkage method, 11 companies belong to cluster 1, 3 companies belong to cluster 2 & 7 companies belong to cluster 3.
+
+```{r}
+# Characterizing clusters 
+aggregate(df_scale,list(member),mean)
+aggregate(df[, -c(1,2,12,13,14)],list(member),mean)
+```
+
+
+```{r}
+# Silhouette Plot
+library(cluster) 
+plot(silhouette(cutree(hc.c,3), distance)) 
+
+```
+
+Cluster 1: Si values are very high. This means that the members within Cluster 1 are quite similar to each other, indicating a successful formation of this cluster.
+Cluster 2: Si values are average. While most members are well-matched to their own cluster, one member has a low Si value, suggesting it might be less suited to its assigned cluster.
+Cluster 3: Si values are generally good, but there's a negative Si value. This negative value indicates an outlier member (like Company 3) that might not fit well within Cluster 3.
+Company 3 can be an outlier.
+
+Now as the last clustering method, we are going to use K-means Clustering with setting the number of clusters to 3.
+
+```{r}
+# K-means clustering
+
+set.seed(123)
+# when k=3
+kc<-kmeans(df_scale,3)
+kc
+
+```
+Sum of Squares in Each Cluster:
+
+For Cluster 1, the sum of squares is 32.14.
+For Cluster 2, the sum of squares is 43.30.
+For Cluster 3, the sum of squares is 20.54.
+Rationale: Smaller sums of squares within each cluster are desirable. It means the data points within a cluster are closer to each other. So, lower values indicate more cohesive and tightly packed clusters.
+Sum of Squares Among All Clusters:
+
+The sum of squares among all clusters is 46.7%.
+Rationale: Here, we are looking for a higher value. A higher percentage suggests that the clusters are distinct and separate from each other. We want the clusters to be as different as possible.
+Decision on Number of Clusters (k=3):
+
+Considering the dataset has 21 observations and analyzing the plots that show the improvement in sum of squares based on the number of clusters and the dendrograms:
+Decision: Keeping the number of clusters as 3 seems appropriate for further analysis.
+Rationale: The chosen number of clusters balances the cohesion within each cluster (lower sum of squares) and the separation among clusters (higher percentage of sum of squares among all clusters).
+
+ the goal is to find a balance where clusters are tight internally (low within-cluster sum of squares) and distinct from each other (high among-cluster sum of squares). The choice of 3 clusters strikes a reasonable balance for this dataset based on the analysis of the sum of squares.
+ 
+```{r}
+plot(ROE~Net_Profit_Margin, df, col= kc$cluster)
+with(df,text(df$Rev_Growth ~ df$Net_Profit_Margin, labels=df$Name,pos=2, cex=0.7))
+
+plot(Rev_Growth~Net_Profit_Margin, df, col= kc$cluster)
+with(df,text(df$Rev_Growth ~ df$Net_Profit_Margin, labels=df$Symbol,pos=2, cex=0.6))
+
+
+plot(Rev_Growth~Net_Profit_Margin, df, col= kc$cluster)
+with(df,text(df$Rev_Growth ~ df$Net_Profit_Margin, labels=df$Median_Recommendation,pos=2, cex=0.6))
+
+plot(Rev_Growth~Net_Profit_Margin, df, col= kc$cluster)
+with(df,text(df$Rev_Growth ~ df$Net_Profit_Margin, labels=df$Location,pos=2, cex=0.6))
+
+plot(Rev_Growth~Net_Profit_Margin, df, col= kc$cluster)
+with(df,text(df$Rev_Growth ~ df$Net_Profit_Margin, labels=df$Exchange,pos=2, cex=0.6))
+```
+ 
+```{r}
+
+# Load necessary libraries
+library(factoextra)
+library(cluster)
+# Create a silhouette object
+silhouette_kmeans <- silhouette(kc$cluster, dist(df_scale))  # Calculate distances using 'dist' function
+
+# Plot the silhouette
+fviz_silhouette(silhouette_kmeans)
+```
+
+
+I have compared the silhouette score for both methods and its higher in the hierarchical agglomerative clustering with complete linkage when compare to k means. IN the hierarchical agglomerative clustering with complete linkage its is 0.27 and in k means its 0.18 so the objects in the hierarchical clustering result are better matched to their own clusters than those in the K-means clustering . So clusters that were  formed by hierarchical agglomerative clustering using complete linkage is  more distinct or well-separated compared to the clusters  formed by K-means . So  I decide to choose hierarchical agglomerative clustering with complete linkage for my clustering analysis. To better understand the above point look at the silhouette plot.
+
+```{r}
+# Plot both silhouettes side by side
+par(mfrow=c(1, 2))  # Set the layout to display plots side by side
+
+# Plot the silhouette for K-means
+fviz_silhouette(silhouette_kmeans)
+
+# Silhouette Plot for Hierarchical Clustering
+plot(silhouette(cutree(hc.c,3), distance)) 
+```
+
+
+To find the pattern in  the clusters with respect to columns Median_Recommendation, Location, and Exchange we can calculate the median values for each cluster  for the feature;
+
+```{r}
+# Cluster memberships for each method
+hc_c_clusters <- cutree(hc.c, 3)
+hc_a_clusters <- cutree(hc_a, 3)
+kc_clusters <- kc$cluster
+
+```
+
+```{r}
+# Columns to analyze
+selected_columns <- c('Median_Recommendation', 'Location', 'Exchange')
+
+# Subset categorical columns along with cluster memberships
+cluster_data <- cbind(
+  df[selected_columns],
+  hc_c = hc_c_clusters,
+  hc_a = hc_a_clusters,
+  kc = kc_clusters
+)
+
+```
+
+
+```{r}
+# Analyzing 'Median_Recommendation', 'Location', and 'Exchange' within clusters
+for (method in c('hc_c', 'hc_a', 'kc')) {
+  cat("\nCluster analysis for method:", method, "\n")
+  for (col in selected_columns) {
+    cat("Variable:", col, "\n")
+    table_result <- table(cluster_data[[method]], cluster_data[[col]])
+    print(table_result)
+    # Optionally, perform chi-square tests here
+    # chi_result <- chisq.test(table_result)
+    # print(chi_result)
+  }
+}
+
+```
+
+There is some clear patterns and similarities across clusters within each method:
+
+Across Hierarchical Clustering (hc_c):
+
+Cluster 1: Dominated by 'Hold' recommendations and 'NYSE' exchanges, mostly from the US.
+Cluster 2: Quite distinct, with less variability in recommendations and locations but still heavily tied to 'NYSE'.
+Cluster 3: A mix of various recommendations, more varied locations, but still heavily associated with 'NYSE'.
+
+Across Hierarchical Clustering (hc_a):
+Cluster 1: Dominated by 'Hold', 'Order Buy', and 'NYSE', majorly from the US.
+Cluster 2: Similar to Cluster 1 but less varied in recommendations and locations.
+Cluster 3: Again, significant 'Hold' recommendations and 'NYSE', also concentrated in the US.
+
+Across K-means Clustering (kc):
+Cluster 1: 'Hold' is dominant, locations are primarily in the US, and 'NYSE' is the preferred exchange.
+Cluster 2: Similar to Cluster 1 in terms of recommendation and exchange preference, still mostly from the US.
+Cluster 3: A mix of 'Hold' and 'Moderate Buy', primarily from the US, and again favoring 'NYSE'.
+
+In general, the 'Hold' recommendation and the presence of 'NYSE' are recurrent across clusters for all three clustering methods. Additionally, the dominance of the US in location across clusters is notable. 
+
+#How the above information helps equities analyst studying the pharmaceutical industry?
+This information can be particularly insightful for an equities analyst studying the pharmaceutical industry in several ways:
+
+Investment Strategies:
+Understanding Market Trends: Recurrent trends like 'Hold' recommendations and prevalence on 'NYSE' might indicate stability or common investor sentiment across clusters. This insight can guide decisions on long-term investments or cautious strategies.
+
+Regional Focus: Dominance of the US in location might emphasize the concentration of pharmaceutical companies or key players in specific regions. It signals where significant market activity or potential growth might occur.
+
+Risk Assessment:
+Risk Diversification: While 'Hold' recommendations suggest a certain level of stability, an equities analyst can delve deeper into other clusters with varied recommendations to diversify risk. Understanding the risk-reward ratio across different clusters aids in decision-making.
+
+Industry Insights:
+Comparative Analysis: By observing how different clusters and preferences overlap or diverge across methodologies, analysts can gain a comparative view of how different investment strategies or clusters align within the pharmaceutical industry.
+
+Investment Allocation:
+Portfolio Distribution: Insights into recurring patterns can help balance investment portfolios across clusters, optimizing for stability, growth, and potential.
+
+Strategy Adaptation:
+Adapting to Market Sentiment: Recognizing recurrent preferences enables analysts to adapt their strategies based on evolving market sentiments, allowing for proactive investment decisions.
+
+Risk Mitigation:
+Identifying Outliers: Recognizing outliers within clusters or patterns diverging from the norm helps identify potential risks or unique opportunities.
+In essence, this information offers crucial guidance for investment strategies, risk assessment, industry insights, and adapting to market sentiments within the pharmaceutical industry. It allows for informed decision-making .
+
+
+
+Considering the patterns and dominant characteristics observed across the clusters from the analysis of the pharmaceutical industry data:
+
+1. **Cluster Stability and Reliability**
+   - *Key Characteristics*: Dominance of 'Hold' recommendations, high presence on 'NYSE', and significant US presence in location.
+   - *Rationale*: Reflects stability, consistent performance, and a strong market presence.
+
+2. **Global Consistency Cluster**
+   - *Key Characteristics*: Consistent 'Hold' recommendations, dominance of 'NYSE', and a strong US presence alongside international diversity.
+   - *Rationale*: Represents stability with a global footprint, balancing US market influence with international opportunities.
+
+3. **Dynamic Investment Diversity**
+   - *Key Characteristics*: Varied recommendations ('Hold', 'Moderate Buy'), significant 'NYSE' presence, and a strong US market presence across clusters.
+   - *Rationale*: Indicates a mix of cautious investment (Hold), moderate risk-taking (Moderate Buy), and a consistent market interest in the US.
+
+These cluster names aim to capture the overarching characteristics observed across the different clustering methodologies and offer insight into the underlying investment trends, regional influences, and risk profiles within the pharmaceutical industry.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
